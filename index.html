@@ -1,0 +1,313 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Bridge IoT Monitor</title>
+<meta name="description" content="Bridge structural health monitoring dashboard: sensor values, thresholds, alerts, team presence and alarm dispatch. Demo data.">
+<style>
+:root{--bg:#0b0e12;--panel:#12161c;--raise:#181d25;--line:#252c37;--fg:#e6e9ee;--mute:#8d96a5;--dim:#5d6676;--ok:#3ecf8e;--warn:#f5b13d;--alarm:#ff4d4f;--off:#6b7280;--acc:#5aa9ff;--f:system-ui,-apple-system,"Segoe UI",Roboto,Arial,sans-serif;--m:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace}
+:root[data-theme=light]{--bg:#f3f5f8;--panel:#ffffff;--raise:#f6f8fb;--line:#dde2ea;--fg:#14181f;--mute:#5c6573;--dim:#8a93a1}
+*{box-sizing:border-box}html,body{margin:0;height:100%}body{background:var(--bg);color:var(--fg);font:13px/1.4 var(--f)}
+button,select,input,textarea{font:inherit;color:inherit}
+.btn{background:var(--raise);border:1px solid var(--line);border-radius:8px;padding:6px 11px;cursor:pointer}.btn:hover{border-color:var(--acc)}.btn.red{background:var(--alarm);border-color:var(--alarm);color:#fff;font-weight:600}.btn.sm{padding:3px 8px;font-size:12px}
+.btn[aria-pressed=true]{border-color:var(--acc);color:var(--acc)}
+header{display:flex;align-items:center;gap:12px;padding:10px 16px;border-bottom:1px solid var(--line);background:var(--panel);position:sticky;top:0;z-index:5;flex-wrap:wrap}
+header h1{font-size:15px;margin:0;font-weight:650}header .sub{color:var(--mute);font-size:12px}
+.pill{display:inline-flex;align-items:center;gap:6px;border-radius:999px;padding:3px 10px;font-weight:600;font-size:12px;border:1px solid var(--line)}
+.pill i{width:8px;height:8px;border-radius:50%;background:currentColor}
+.st-ok{color:var(--ok)}.st-warn{color:var(--warn)}.st-alarm{color:var(--alarm)}.st-off{color:var(--off)}
+.grow{flex:1}.live{color:var(--mute);font-family:var(--m);font-size:12px}
+.users{display:flex;align-items:center;gap:-6px}.av{width:28px;height:28px;border-radius:50%;display:grid;place-items:center;font-size:11px;font-weight:700;color:#fff;border:2px solid var(--panel);margin-left:-6px;position:relative}
+.av b{position:absolute;right:-1px;bottom:-1px;width:9px;height:9px;border-radius:50%;border:2px solid var(--panel)}
+.bell{position:relative}.bell span{position:absolute;top:-6px;right:-6px;background:var(--alarm);color:#fff;border-radius:999px;font-size:10px;padding:0 5px;min-width:16px;text-align:center}
+main{display:grid;grid-template-columns:minmax(0,1fr) 380px;gap:14px;padding:14px 16px}
+.card{background:var(--panel);border:1px solid var(--line);border-radius:12px;padding:12px}
+.card h2{font-size:12px;letter-spacing:.06em;text-transform:uppercase;color:var(--mute);margin:0 0 10px;font-weight:650;display:flex;align-items:center;gap:8px}
+.card h2 em{font-style:normal;text-transform:none;letter-spacing:0;color:var(--dim);font-weight:400;margin-left:auto}
+.kpis{display:grid;grid-template-columns:repeat(auto-fit,minmax(130px,1fr));gap:10px;margin-bottom:14px}
+.kpi{background:var(--panel);border:1px solid var(--line);border-radius:12px;padding:10px 12px}.kpi span{color:var(--mute);font-size:11.5px}.kpi b{display:block;font-size:20px;font-family:var(--m);margin-top:2px}
+.bar{display:flex;gap:8px;flex-wrap:wrap;align-items:center;margin-bottom:10px}
+.bar input[type=search]{background:var(--raise);border:1px solid var(--line);border-radius:8px;padding:6px 10px;min-width:180px;flex:1}
+.bar select{background:var(--raise);border:1px solid var(--line);border-radius:8px;padding:6px 8px}
+.grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(205px,1fr));gap:10px}
+.tile{background:var(--panel);border:1px solid var(--line);border-left:4px solid var(--ok);border-radius:10px;padding:9px 11px;cursor:pointer;min-width:0}
+.tile:hover,.tile.sel{border-color:var(--acc)}.tile.sel{box-shadow:0 0 0 1px var(--acc) inset}
+.tile.warn{border-left-color:var(--warn)}.tile.alarm{border-left-color:var(--alarm);animation:pulse 1.2s infinite}.tile.off{border-left-color:var(--off);opacity:.7}
+@keyframes pulse{50%{box-shadow:0 0 0 3px rgba(255,77,79,.25)}}
+.tile .id{font-family:var(--m);font-size:12px;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}.tile .ty{color:var(--mute);font-size:11px}
+.tile .v{font-family:var(--m);font-size:19px;margin-top:4px}.tile .v small{font-size:11px;color:var(--mute)}
+.tile canvas{width:100%;height:30px;display:block;margin-top:4px}
+.side{display:flex;flex-direction:column;gap:14px;min-width:0}
+.kv{display:grid;grid-template-columns:auto 1fr;gap:3px 10px;font-size:12px}.kv span{color:var(--mute)}.kv b{font-family:var(--m);font-weight:500;text-align:right;word-break:break-all}
+#chart{width:100%;height:170px;display:block}
+.thr{display:grid;grid-template-columns:repeat(4,1fr);gap:6px;margin-top:8px}.thr label{font-size:11px;color:var(--mute);display:flex;flex-direction:column;gap:2px}
+.thr input{background:var(--raise);border:1px solid var(--line);border-radius:6px;padding:4px 6px;width:100%;font-family:var(--m);font-size:12px}
+.ev{display:flex;flex-direction:column;gap:6px;max-height:300px;overflow:auto}
+.e{border:1px solid var(--line);border-left:4px solid var(--mute);border-radius:8px;padding:6px 9px;font-size:12px;background:var(--raise)}
+.e.warn{border-left-color:var(--warn)}.e.alarm,.e.critical,.e.emergency{border-left-color:var(--alarm)}.e.info{border-left-color:var(--acc)}.e.ok{border-left-color:var(--ok)}
+.e .h{display:flex;gap:8px;align-items:center}.e .h b{flex:1}.e time{color:var(--mute);font-family:var(--m);font-size:11px}.e.acked{opacity:.55}
+.team{display:flex;flex-direction:column;gap:7px}.tm{display:flex;align-items:center;gap:9px}.tm .av{margin:0}.tm div{flex:1;min-width:0}.tm small{color:var(--mute);display:block;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+#map{width:100%;height:150px;display:block;border-radius:8px;background:var(--raise)}
+.ops{display:flex;gap:6px}.ops .btn{flex:1}
+dialog{background:var(--panel);color:var(--fg);border:1px solid var(--line);border-radius:14px;padding:16px;width:min(460px,94vw)}
+dialog::backdrop{background:rgba(0,0,0,.55)}dialog h3{margin:0 0 12px}
+dialog label{display:block;font-size:12px;color:var(--mute);margin:8px 0 3px}dialog select,dialog textarea,dialog input{width:100%;background:var(--raise);border:1px solid var(--line);border-radius:8px;padding:7px}
+.chk{display:flex;flex-wrap:wrap;gap:6px 14px;margin-top:4px}.chk label{display:flex;gap:5px;align-items:center;color:var(--fg);margin:0;font-size:12.5px}.chk input{width:auto}
+.row{display:flex;gap:8px;justify-content:flex-end;margin-top:14px}
+#toasts{position:fixed;right:14px;bottom:14px;display:flex;flex-direction:column;gap:8px;z-index:20;max-width:340px}
+.toast{background:var(--panel);border:1px solid var(--line);border-left:4px solid var(--acc);border-radius:10px;padding:9px 12px;box-shadow:0 8px 24px rgba(0,0,0,.35);font-size:12.5px}
+.toast.warn{border-left-color:var(--warn)}.toast.alarm{border-left-color:var(--alarm)}
+.banner{background:rgba(255,77,79,.14);border:1px solid var(--alarm);color:var(--fg);border-radius:10px;padding:9px 12px;margin-bottom:12px;display:none;align-items:center;gap:10px}.banner.on{display:flex}
+.demo{color:var(--dim);font-size:11.5px;padding:0 16px 16px}
+.tbl{width:100%;border-collapse:collapse;font-size:12px}.tbl td,.tbl th{padding:4px 5px;border-bottom:1px solid var(--line);text-align:left}.tbl input{width:70px;background:var(--raise);border:1px solid var(--line);border-radius:6px;padding:3px 5px;font-family:var(--m)}
+@media (max-width:980px){main{grid-template-columns:1fr}}
+body.compact header .sub,body.compact .kpis .kx{display:none}body.compact main{grid-template-columns:1fr;padding:10px}
+</style>
+</head>
+<body>
+<header>
+  <div><h1 id="proj">Bridge monitoring</h1><div class="sub" id="projSub">Structural health · digital twin</div></div>
+  <span class="pill st-ok" id="bridgeStatus"><i></i>All normal</span>
+  <span class="pill" id="opsPill" title="Operational status of the bridge">Open to traffic</span>
+  <div class="grow"></div>
+  <span class="live" id="clock">--:--:--</span>
+  <select id="scenario" class="btn sm" title="Simulation scenario (demo data)"><option value="normal">Scenario: normal</option><option value="traffic">Heavy traffic</option><option value="storm">Wind storm</option><option value="flood">Flood · scour</option><option value="stay">Stay / bearing fault</option><option value="heat">Heat wave</option></select>
+  <div class="users" id="avatars" title="Active on this bridge project"></div>
+  <button class="btn bell" id="bellBtn" title="Notifications">🔔<span id="bellN" hidden>0</span></button>
+  <button class="btn" id="setBtn" title="Thresholds and settings">⚙</button>
+  <button class="btn red" id="alarmBtn">Send alarm</button>
+</header>
+<main>
+  <section>
+    <div class="banner" id="banner"><b>⚠</b><span id="bannerTxt"></span><span class="grow"></span><button class="btn sm" id="bannerAck">Acknowledge all</button></div>
+    <div class="kpis">
+      <div class="kpi"><span>Sensors online</span><b id="kOnline">–</b></div>
+      <div class="kpi"><span>Warnings</span><b id="kWarn" class="st-warn">0</b></div>
+      <div class="kpi"><span>Alarms</span><b id="kAlarm" class="st-alarm">0</b></div>
+      <div class="kpi kx"><span>Health index</span><b id="kHealth">–</b></div>
+      <div class="kpi kx"><span>Max wind</span><b id="kWind">–</b></div>
+      <div class="kpi kx"><span>Peak acceleration</span><b id="kAcc">–</b></div>
+      <div class="kpi kx"><span>Heavy vehicles / h</span><b id="kTraffic">–</b></div>
+    </div>
+    <div class="bar">
+      <input type="search" id="q" placeholder="Search sensor ID, type or element…">
+      <select id="fType"><option value="">All types</option></select>
+      <select id="fStatus"><option value="">All states</option><option value="alarm">Alarm</option><option value="warn">Warning</option><option value="ok">Normal</option><option value="off">Offline</option></select>
+      <button class="btn sm" id="csvBtn" title="Current readings as CSV">Export CSV</button>
+      <label class="btn sm" title="Load a sensor list exported by the Parametric Modeller (CSV or JSON)">Load sensors<input type="file" id="fileIn" accept=".csv,.json" hidden></label>
+    </div>
+    <div class="grid" id="grid"></div>
+  </section>
+  <aside class="side">
+    <div class="card"><h2>Selected sensor <em id="selType"></em></h2><div id="selHead" class="tile" style="cursor:default;border-left-width:4px"></div><canvas id="chart"></canvas>
+      <div class="thr"><label>Alarm low<input id="tAL" type="number" step="any"></label><label>Warn low<input id="tWL" type="number" step="any"></label><label>Warn high<input id="tWH" type="number" step="any"></label><label>Alarm high<input id="tAH" type="number" step="any"></label></div>
+      <div class="kv" id="selMeta" style="margin-top:10px"></div></div>
+    <div class="card"><h2>Bridge operations <em>digital twin state</em></h2><div class="ops"><button class="btn sm" data-op="open">Open</button><button class="btn sm" data-op="restricted">Restricted</button><button class="btn sm" data-op="closed">Closed</button></div>
+      <canvas id="map" style="margin-top:10px" title="Sensor positions (map grid)"></canvas></div>
+    <div class="card"><h2>Notifications <em id="evN"></em></h2><div class="ev" id="events"></div></div>
+    <div class="card"><h2>Active on this project <em id="teamN"></em></h2><div class="team" id="team"></div></div>
+  </aside>
+</main>
+<div class="demo" id="demoNote">Demo mode: sensor values, the team and their activity are simulated. Thresholds, alarms and acknowledgements are shared between tabs of this browser; connect a backend (MQTT / WebSocket / usBIM.iot) to share them between users.</div>
+<div id="toasts"></div>
+
+<dialog id="alarmDlg"><form method="dialog" id="alarmForm">
+  <h3>Send alarm</h3>
+  <label>Severity</label><select id="aSev"><option value="info">Information</option><option value="warn">Warning</option><option value="critical" selected>Critical</option><option value="emergency">Emergency · close the bridge</option></select>
+  <label>Category</label><select id="aCat"><option>Structural</option><option>Traffic</option><option>Weather</option><option>Flood / scour</option><option>Fire / incident</option><option>Security</option><option>Maintenance</option></select>
+  <label>Related sensor</label><select id="aSensor"><option value="">None</option></select>
+  <label>Message</label><textarea id="aMsg" rows="3" placeholder="What happened, where, what to do"></textarea>
+  <label>Notify</label><div class="chk"><label><input type="checkbox" value="team" checked>Everyone on the project</label><label><input type="checkbox" value="maintenance" checked>Maintenance</label><label><input type="checkbox" value="operations">Traffic operations</label><label><input type="checkbox" value="emergency">Emergency services</label></div>
+  <div class="row"><button class="btn" value="cancel">Cancel</button><button class="btn red" value="send" id="aSend">Send alarm</button></div>
+</form></dialog>
+
+<dialog id="setDlg"><form method="dialog">
+  <h3>Thresholds by sensor type</h3>
+  <div style="max-height:55vh;overflow:auto"><table class="tbl" id="thrTbl"></table></div>
+  <label>Your name (shown to the team)</label><input id="meName">
+  <div class="chk" style="margin-top:10px"><label><input type="checkbox" id="optSound">Alarm sound</label><label><input type="checkbox" id="optBrowser">Browser notifications</label><label><input type="checkbox" id="optLight">Light theme</label></div>
+  <div class="row"><button class="btn" value="reset" id="thrReset">Reset defaults</button><button class="btn" value="close">Close</button></div>
+</form></dialog>
+
+<script>
+/* ======================= Bridge IoT Monitor (demo data) =======================
+   Embed:  <iframe src=".../iot-dashboard.html?project=My%20Bridge&compact=1"></iframe>
+   URL:    ?project=Name  ?sensors=<url to .json|.csv from the Parametric Modeller>  ?sensor=ID (select)  ?compact=1  ?theme=light  ?scenario=storm
+   Out:    window.parent.postMessage({source:'pm-iot', type:'ready'|'status'|'select'|'event'|'alarm'|'ops', ...}, '*')
+   In:     {type:'focusSensor', id} · {type:'setSensors', sensors:[...]} · {type:'setProject', name} · {type:'setScenario', name}
+================================================================================ */
+const DEFAULT_SENSORS = [{"id":"DISP-A1-B1","guid":"0tUsQ4_VYsW79MHO3FSOXa","type":"Displacement transducer","q":"Displacement","u":"mm","host":"A1","note":"bearing 1 movement","E":514853.02,"N":5034526.8,"H":47.58},{"id":"DISP-A1-EJ","guid":"1LPTCUJ0qbgk6rsnwrdFt2","type":"Displacement transducer","q":"Displacement","u":"mm","host":"A1","note":"expansion joint gap","E":514853.7,"N":5034527.35,"H":50.15},{"id":"TILT-P1","guid":"1KNQIIT5XGg8ySpJud1uFm","type":"Inclinometer","q":"Rotation","u":"°","host":"P1","note":"pier top rotation","E":514909.861,"N":5034536.8,"H":48.44},{"id":"SCOUR-P1","guid":"20c9sHSHRCnLtf8p7vnITj","type":"Scour sensor","q":"Riverbed level","u":"m","host":"P1","note":"riverbed level at the pier","E":514909.811,"N":5034536.8,"H":52.05},{"id":"STR-P1-HOG","guid":"0MJd1B$UdN4tJ30nyyfknt","type":"Strain gauge","q":"Strain","u":"µε","host":"P1","note":"deck soffit over the support (hogging)","E":514907.5,"N":5034536.8,"H":51.04},{"id":"TILT-P2","guid":"3bsTzFPDjFaSQxXKFkxcOH","type":"Inclinometer","q":"Rotation","u":"°","host":"P2","note":"pier top rotation","E":515282.059,"N":5034536.8,"H":70.76},{"id":"STR-P2-HOG","guid":"0_Hs2QQV5bQbJ_8iubC_8E","type":"Strain gauge","q":"Strain","u":"µε","host":"P2","note":"deck soffit over the support (hogging)","E":515279.5,"N":5034536.8,"H":73.36},{"id":"DISP-A2-B1","guid":"1Cdmrl28sNMmHuz7yPxCoh","type":"Displacement transducer","q":"Displacement","u":"mm","host":"A2","note":"bearing 1 movement","E":515333.98,"N":5034526.8,"H":76.38},{"id":"DISP-A2-EJ","guid":"1IrSSHoGOLFNMLyKqFA5Mv","type":"Displacement transducer","q":"Displacement","u":"mm","host":"A2","note":"expansion joint gap","E":515333.3,"N":5034527.35,"H":78.95},{"id":"LOAD-STAY-T1M14","guid":"0I0nGlg6TzgQ8zCR_67Zlr","type":"Load cell","q":"Force","u":"kN","host":"STAY","note":"stay force at the deck anchorage","E":515087.489,"N":5034526.79,"H":64.399},{"id":"ACC-STAY-T1M14","guid":"3vJgnUClKuCZIeZw9YUvy6","type":"Accelerometer","q":"Acceleration","u":"m/s²","host":"STAY","note":"stay vibration","E":515082.207,"N":5034526.696,"H":65.522},{"id":"LOAD-STAY-T1B14","guid":"2qvjXM0GbDN661kjv3dlSe","type":"Load cell","q":"Force","u":"kN","host":"STAY","note":"stay force at the deck anchorage","E":514858.497,"N":5034526.788,"H":50.686},{"id":"ACC-STAY-T1B14","guid":"0e2so7bNeAA$GfJVlVQKo$","type":"Accelerometer","q":"Acceleration","u":"m/s²","host":"STAY","note":"stay vibration","E":514863.521,"N":5034526.679,"H":52.661},{"id":"TILT-T1","guid":"2fOSiE7rGgB1oa1_9vaK5i","type":"Inclinometer","q":"Rotation","u":"°","host":"T1","note":"pylon top rotation","E":514961.5,"N":5034524.55,"H":109.88},{"id":"GNSS-T1","guid":"3$jY__fZ9dlDLTXyfjVUQC","type":"GNSS receiver","q":"Displacement","u":"mm","host":"T1","note":"pylon top position","E":514961.5,"N":5034524.55,"H":110.68},{"id":"WIND-T1","guid":"36yk7Hrr$C1xzLGuKsv6x7","type":"Anemometer","q":"Wind speed","u":"m/s","host":"T1","note":"wind at pylon top","E":514961.5,"N":5034524.55,"H":111.48},{"id":"LOAD-STAY-T2B14","guid":"2rxpef2rWK2x7hD5MzbzDx","type":"Load cell","q":"Force","u":"kN","host":"STAY","note":"stay force at the deck anchorage","E":515099.494,"N":5034526.79,"H":65.115},{"id":"ACC-STAY-T2B14","guid":"2teS2mu_E0V6cdlYZo5ihi","type":"Accelerometer","q":"Acceleration","u":"m/s²","host":"STAY","note":"stay vibration","E":515104.617,"N":5034526.699,"H":66.819},{"id":"LOAD-STAY-T2M14","guid":"1mBzZKJXEE4b3EyZ24SrNA","type":"Load cell","q":"Force","u":"kN","host":"STAY","note":"stay force at the deck anchorage","E":515328.483,"N":5034526.787,"H":78.892},{"id":"ACC-STAY-T2M14","guid":"1jqQXjygY8oJJzh9spMrSn","type":"Accelerometer","q":"Acceleration","u":"m/s²","host":"STAY","note":"stay vibration","E":515323.275,"N":5034526.674,"H":80.314},{"id":"TILT-T2","guid":"0wtWNBZzVobNQzMqT3yeoD","type":"Inclinometer","q":"Rotation","u":"°","host":"T2","note":"pylon top rotation","E":515225.5,"N":5034524.55,"H":125.72},{"id":"GNSS-T2","guid":"0HCpFx5hOm9GzsgC_tt$ij","type":"GNSS receiver","q":"Displacement","u":"mm","host":"T2","note":"pylon top position","E":515225.5,"N":5034524.55,"H":126.52},{"id":"WIND-T2","guid":"3hLBgWaFsziYdP0dpAOAog","type":"Anemometer","q":"Wind speed","u":"m/s","host":"T2","note":"wind at pylon top","E":515225.5,"N":5034524.55,"H":127.32},{"id":"ACC-S1-MID","guid":"0Fn_kguoWT1cYw8fvcCkjA","type":"Accelerometer","q":"Acceleration","u":"m/s²","host":"S1","note":"vertical acceleration at midspan","E":514880.5,"N":5034527.15,"H":51.27},{"id":"STR-S1-MID","guid":"3hDU4eYN1Cj8lQRFWeTPQy","type":"Strain gauge","q":"Strain","u":"µε","host":"S1","note":"soffit strain at midspan (sagging)","E":514880.5,"N":5034536.8,"H":49.32},{"id":"ACC-S2-MID","guid":"1hsbTlfMA1opJrCRC4QAlV","type":"Accelerometer","q":"Acceleration","u":"m/s²","host":"S2","note":"vertical acceleration at midspan","E":514934.5,"N":5034527.15,"H":54.51},{"id":"STR-S2-MID","guid":"3RsNu9hQ7VrVpEC5bR616j","type":"Strain gauge","q":"Strain","u":"µε","host":"S2","note":"soffit strain at midspan (sagging)","E":514934.5,"N":5034536.8,"H":52.56},{"id":"ACC-S3-MID","guid":"3$HDbKcZEXG0nc5jYKv324","type":"Accelerometer","q":"Acceleration","u":"m/s²","host":"S3","note":"vertical acceleration at midspan","E":515093.5,"N":5034527.15,"H":64.05},{"id":"STR-S3-MID","guid":"0IOpxkLBh0ElTEShxfgVgY","type":"Strain gauge","q":"Strain","u":"µε","host":"S3","note":"soffit strain at midspan (sagging)","E":515093.5,"N":5034536.8,"H":62.1},{"id":"ACC-S4-MID","guid":"0LmSvHyaUGvKpkjttNeZiH","type":"Accelerometer","q":"Acceleration","u":"m/s²","host":"S4","note":"vertical acceleration at midspan","E":515252.5,"N":5034527.15,"H":73.59},{"id":"STR-S4-MID","guid":"2YZxh7r1PsErtOBbS0gfA3","type":"Strain gauge","q":"Strain","u":"µε","host":"S4","note":"soffit strain at midspan (sagging)","E":515252.5,"N":5034536.8,"H":71.64},{"id":"ACC-S5-MID","guid":"1HW0xs_ImGYZYNou9Yawo6","type":"Accelerometer","q":"Acceleration","u":"m/s²","host":"S5","note":"vertical acceleration at midspan","E":515306.5,"N":5034527.15,"H":76.83},{"id":"STR-S5-MID","guid":"3az7OCxx2xyDw97OoltQwu","type":"Strain gauge","q":"Strain","u":"µε","host":"S5","note":"soffit strain at midspan (sagging)","E":515306.5,"N":5034536.8,"H":74.88},{"id":"ACC-MAIN-Q1","guid":"27AE0zBRDpo$oVJ5MbnOxF","type":"Accelerometer","q":"Acceleration","u":"m/s²","host":"MAIN","note":"main span quarter point","E":515027.5,"N":5034527.15,"H":60.09},{"id":"ACC-MAIN-Q3","guid":"2g8LMt_ivisLMc1m$SgfmD","type":"Accelerometer","q":"Acceleration","u":"m/s²","host":"MAIN","note":"main span quarter point","E":515159.5,"N":5034527.15,"H":68.01},{"id":"TEMP-MAIN-SLAB","guid":"1Hb0fIlcx8Bf7tfXR70jvQ","type":"Temperature sensor","q":"Temperature","u":"°C","host":"MAIN","note":"deck slab temperature","E":515093.5,"N":5034536.8,"H":64.275},{"id":"WIND-MAIN-WS","guid":"3qfMNyTu18z7S_wOJuVRDy","type":"Anemometer","q":"Wind speed","u":"m/s","host":"MAIN","note":"weather station on the parapet mast","E":515093.5,"N":5034547.15,"H":68.6},{"id":"HUM-MAIN-WS","guid":"1cC3Pw9ax$k9hry9eqPXxS","type":"Hygrometer","q":"Relative humidity","u":"%","host":"MAIN","note":"weather station","E":515093.5,"N":5034547.15,"H":68.0},{"id":"GNSS-MAIN-MID","guid":"2CPKa3l_dUHSET$7TR3uUb","type":"GNSS receiver","q":"Displacement","u":"mm","host":"MAIN","note":"deck position at midspan","E":515093.5,"N":5034547.15,"H":66.0},{"id":"WIM-APP1","guid":"0yLoL5JqRKjH3uEfc8EnAP","type":"Weigh-in-motion","q":"Axle load","u":"kN","host":"APP1","note":"traffic loading on the approach","E":514841.5,"N":5034536.8,"H":49.34}];
+const qs=new URLSearchParams(location.search), $=id=>document.getElementById(id), esc=t=>String(t).replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
+const store={ get(k,d){ try{ const v=localStorage.getItem('pmiot:'+k); return v==null?d:JSON.parse(v); }catch(e){ return d; } }, set(k,v){ try{ localStorage.setItem('pmiot:'+k,JSON.stringify(v)); }catch(e){} } };
+if(qs.get('compact')==='1') document.body.classList.add('compact');
+const theme=qs.get('theme')||(store.get('light',false)?'light':'dark'); document.documentElement.dataset.theme=theme;
+const PROJECT=qs.get('project')||store.get('project','Cable-stayed bridge · demo'); $('proj').textContent=PROJECT;
+
+/* ---- sensor profiles: how values behave and default thresholds [alarmLow, warnLow, warnHigh, alarmHigh] (null = none) ---- */
+const PROF={
+ 'Accelerometer':{u:'m/s²',d:3,thr:[null,null,0.5,1.0],gen:(s,t,c)=>Math.abs(0.05*s.k+0.03*rn()+c.traffic*0.18*burst(s)+0.045*Math.max(0,c.windv-8)*(0.6+0.4*Math.sin(t/3+s.k)))},
+ 'Strain gauge':{u:'µε',d:0,thr:[-300,-200,350,500],gen:(s,t,c)=>90*s.k+25*Math.sin(t/900)+(c.temp-15)*2+c.traffic*160*burst(s)+6*rn()},
+ 'Inclinometer':{u:'°',d:4,thr:[-0.1,-0.05,0.05,0.1],gen:(s,t,c)=>0.004*s.k+(c.temp-15)*0.0009+c.windv*0.0006*Math.sin(t/7+s.k)+0.0008*rn()+(c.fault>0.5&&s.k>0.8?0.12:0)},
+ 'Displacement transducer':{u:'mm',d:1,thr:[-40,-25,25,40],gen:(s,t,c)=>(c.temp-15)*0.9*s.k+c.traffic*1.2*burst(s)+0.3*rn()+(c.fault>0.5&&/B1/.test(s.id)?27:0)},
+ 'Temperature sensor':{u:'°C',d:1,thr:[-15,-5,40,50],gen:(s,t,c)=>c.temp+0.3*rn()},
+ 'Anemometer':{u:'m/s',d:1,thr:[null,null,18,25],gen:(s,t,c)=>Math.max(0,c.windv*(0.85+0.3*s.k)+2.2*rn()+(Math.random()<0.04?c.windv*0.5:0))},
+ 'Hygrometer':{u:'%',d:0,thr:[null,null,90,98],gen:(s,t,c)=>Math.min(100,c.hum+1.5*rn())},
+ 'GNSS receiver':{u:'mm',d:1,thr:[-60,-30,30,60],gen:(s,t,c)=>(c.temp-15)*0.8+c.windv*0.9*Math.sin(t/9+s.k)+2*rn()},
+ 'Load cell':{u:'kN',d:0,thr:[2500,3000,4800,5400],gen:(s,t,c)=>3900+300*(s.k-0.5)+(c.temp-15)*-4+c.traffic*260*burst(s)+c.windv*6*Math.sin(t/5)+15*rn()-(c.fault>0.5&&s.k>0.5?1550:0)},
+ 'Scour sensor':{u:'m',d:2,thr:[-1.5,-0.8,null,null],gen:(s,t,c)=>-0.12-c.scour*(0.6+0.7*s.k)+0.02*rn()},
+ 'Weigh-in-motion':{u:'kN',d:0,thr:[null,null,115,130],gen:(s,t,c)=>Math.random()<0.25+c.traffic*0.45?60+55*Math.random()*(0.7+c.traffic*0.6)+(Math.random()<0.03+c.traffic*0.05?40:0):0},
+ 'Generic':{u:'',d:2,thr:[null,null,null,null],gen:()=>rn()}
+};
+function rn(){ return (Math.random()+Math.random()+Math.random()-1.5)/1.5; }
+function burst(s){ return Math.random()<0.18?Math.random():0; }
+const SCEN={ normal:{traffic:0.35,windv:6,temp:16,hum:62,scour:0,fault:0}, traffic:{traffic:1,windv:6,temp:18,hum:58,scour:0,fault:0}, storm:{traffic:0.25,windv:22,temp:11,hum:93,scour:0.2,fault:0},
+  flood:{traffic:0.3,windv:9,temp:12,hum:96,scour:1.2,fault:0}, stay:{traffic:0.4,windv:7,temp:17,hum:60,scour:0,fault:1}, heat:{traffic:0.45,windv:4,temp:39,hum:35,scour:0,fault:0} };
+let scen=qs.get('scenario')||'normal', cond={...SCEN[scen]};
+
+/* ---- sensors ---- */
+let sensors=[], sel=null, thrType=store.get('thrType',{}), thrOne=store.get('thrOne',{});
+function setSensors(list){ sensors=list.map((x,i)=>({id:x.id||x.Tag||('S'+i), guid:x.guid||x.GlobalId||'', type:PROF[x.type||x.Type]?(x.type||x.Type):'Generic', host:x.host||x.Host||'', note:x.note||x.Note||'',
+    E:+(x.E??x.Eastings??NaN), N:+(x.N??x.Northings??NaN), H:+(x.H??x.Height??NaN), k:((i*0.6180339887)%1), hist:[], v:null, st:'ok', since:Date.now()}));
+  const types=[...new Set(sensors.map(s=>s.type))]; $('fType').innerHTML='<option value="">All types</option>'+types.map(t=>`<option>${esc(t)}</option>`).join('');
+  $('aSensor').innerHTML='<option value="">None</option>'+sensors.map(s=>`<option>${esc(s.id)}</option>`).join('');
+  for(let k=0;k<120;k++) tick(true); sel=sensors.find(s=>s.id===qs.get('sensor'))||sensors.find(s=>s.type!=='Weigh-in-motion')||sensors[0]; renderGrid(); renderSel(); drawMap(); }
+const thrOf=s=>thrOne[s.id]||thrType[s.type]||PROF[s.type].thr;
+function statusOf(s,v){ if(s.off) return 'off'; const [al,wl,wh,ah]=thrOf(s); if((ah!=null&&v>=ah)||(al!=null&&v<=al)) return 'alarm'; if((wh!=null&&v>=wh)||(wl!=null&&v<=wl)) return 'warn'; return 'ok'; }
+
+/* ---- simulation ---- */
+let t=0, trafficCount=0;
+function tick(silent){ t++; const target=SCEN[scen]; for(const k in target) cond[k]+= (target[k]-cond[k])*0.08;   // conditions drift towards the scenario
+  for(const s of sensors){ if(!silent&&Math.random()<0.0006) s.off=!s.off; const P=PROF[s.type]; let v=s.off?null:P.gen(s,t,cond);
+    if(v!=null&&s.type==='Weigh-in-motion'&&v>0) trafficCount++; s.v=v; s.hist.push(v); if(s.hist.length>600) s.hist.shift();
+    const st=v==null?'off':statusOf(s,v); if(st!==s.st){ const prev=s.st; s.st=st; s.since=Date.now(); if(!silent) onChange(s,prev); } } }
+const SEVRANK={ok:0,off:1,warn:2,alarm:3};
+function onChange(s,prev){ const P=PROF[s.type], val=s.v==null?'no data':fmt(s.v,P)+' '+P.u;
+  if(SEVRANK[s.st]>SEVRANK[prev]&&s.st!=='off') addEvent({sev:s.st,title:`${s.st==='alarm'?'ALARM':'Warning'} · ${s.id}`,msg:`${s.type} at ${s.host||'—'}: ${val} (${s.st==='alarm'?'alarm':'warning'} threshold crossed)`,sensor:s.id,auto:true});
+  else if(s.st==='off') addEvent({sev:'warn',title:`Offline · ${s.id}`,msg:'No data received from the sensor.',sensor:s.id,auto:true});
+  else if(s.st==='ok'&&SEVRANK[prev]>=2) addEvent({sev:'ok',title:`Back to normal · ${s.id}`,msg:`${s.type}: ${val}`,sensor:s.id,auto:true,ack:true});
+  post({type:'status',id:s.id,guid:s.guid,status:s.st,value:s.v,unit:P.u}); }
+const fmt=(v,P)=>v==null?'—':Number(v).toFixed(P.d);
+
+/* ---- events, notifications, alarms ---- */
+let events=store.get('events',[]).slice(0,200);
+const bc=('BroadcastChannel' in window)?new BroadcastChannel('pm-bridge-iot:'+PROJECT):null;
+function addEvent(e,remote){ e={id:e.id||Date.now()+'-'+Math.random().toString(36).slice(2,7),time:e.time||Date.now(),by:e.by||me.name,ack:false,...e}; if(events.some(x=>x.id===e.id)) return;
+  events.unshift(e); events=events.slice(0,200); store.set('events',events.filter(x=>!x.auto||x.sev!=='ok').slice(0,100)); renderEvents();
+  if(e.sev!=='ok'){ toast(e); if(['alarm','critical','emergency'].includes(e.sev)) beep(); if(opts.browser&&document.hidden&&'Notification' in window&&Notification.permission==='granted') try{ new Notification(e.title,{body:e.msg}); }catch(_){} }
+  if(!remote){ bc&&bc.postMessage({kind:'event',e}); post({type:e.manual?'alarm':'event',event:e}); } }
+function renderEvents(){ const un=events.filter(e=>!e.ack&&e.sev!=='ok'); $('bellN').hidden=!un.length; $('bellN').textContent=un.length; $('evN').textContent=un.length?un.length+' unacknowledged':'';
+  $('events').innerHTML=events.slice(0,60).map(e=>`<div class="e ${e.sev}${e.ack?' acked':''}" data-id="${e.id}"><div class="h"><b>${esc(e.title)}</b><time>${new Date(e.time).toLocaleTimeString()}</time></div><div>${esc(e.msg)}</div>
+    <div class="h" style="margin-top:3px"><small style="color:var(--mute)">${e.manual?'sent by '+esc(e.by)+(e.to?' → '+esc(e.to):''):'automatic'}${e.ackBy?' · ack. '+esc(e.ackBy):''}</small>${!e.ack&&e.sev!=='ok'?'<button class="btn sm" data-ack="'+e.id+'">Acknowledge</button>':''}${e.sensor?'<button class="btn sm" data-goto="'+esc(e.sensor)+'">Show</button>':''}</div></div>`).join('')||'<div style="color:var(--mute)">No notifications.</div>';
+  const crit=events.filter(e=>!e.ack&&['alarm','critical','emergency'].includes(e.sev)); $('banner').classList.toggle('on',crit.length>0); if(crit.length) $('bannerTxt').textContent=`${crit.length} unacknowledged alarm${crit.length>1?'s':''} · latest: ${crit[0].title}`; }
+function ack(id,remote){ const e=events.find(x=>x.id===id); if(!e||e.ack) return; e.ack=true; e.ackBy=remote||me.name; store.set('events',events.slice(0,100)); renderEvents(); if(!remote){ bc&&bc.postMessage({kind:'ack',id,by:me.name}); post({type:'ack',id,by:me.name}); } }
+$('events').onclick=ev=>{ const a=ev.target.dataset.ack, g=ev.target.dataset.goto; if(a) ack(a); if(g) select(g,true); };
+$('bannerAck').onclick=()=>events.filter(e=>!e.ack).forEach(e=>ack(e.id));
+$('bellBtn').onclick=()=>$('events').scrollIntoView({behavior:'smooth',block:'center'});
+function toast(e){ const d=document.createElement('div'); d.className='toast '+(['alarm','critical','emergency'].includes(e.sev)?'alarm':e.sev); d.innerHTML=`<b>${esc(e.title)}</b><div>${esc(e.msg)}</div>`; $('toasts').prepend(d); setTimeout(()=>d.remove(),7000); while($('toasts').children.length>4) $('toasts').lastChild.remove(); }
+let actx=null; function beep(){ if(!opts.sound) return; try{ actx=actx||new AudioContext(); const o=actx.createOscillator(), g=actx.createGain(); o.frequency.value=880; o.type='square'; g.gain.value=0.05; o.connect(g).connect(actx.destination); o.start(); o.frequency.setValueAtTime(660,actx.currentTime+0.18); o.stop(actx.currentTime+0.36); }catch(_){} }
+// manual alarm
+$('alarmBtn').onclick=()=>{ if(sel) $('aSensor').value=sel.id; $('alarmDlg').showModal(); };
+$('alarmForm').onsubmit=ev=>{ if(ev.submitter&&ev.submitter.value!=='send') return; const sev=$('aSev').value, cat=$('aCat').value, sid=$('aSensor').value, msg=$('aMsg').value.trim()||`${cat} alarm`;
+  const to=[...document.querySelectorAll('#alarmForm .chk input:checked')].map(i=>i.parentElement.textContent.trim()).join(', ');
+  addEvent({sev,title:`${sev==='emergency'?'EMERGENCY':sev==='critical'?'CRITICAL':sev==='warn'?'Warning':'Info'} · ${cat}`,msg,sensor:sid||null,manual:true,to});
+  if(sev==='emergency') setOps('closed'); $('aMsg').value=''; };
+
+/* ---- operations state (open / restricted / closed) ---- */
+let ops=store.get('ops','open'); const OPS={open:['Open to traffic','st-ok'],restricted:['Restricted · speed / weight limits','st-warn'],closed:['Closed','st-alarm']};
+function setOps(o,remote){ ops=o; store.set('ops',o); $('opsPill').textContent=OPS[o][0]; $('opsPill').className='pill '+OPS[o][1]; document.querySelectorAll('[data-op]').forEach(b=>b.setAttribute('aria-pressed',String(b.dataset.op===o)));
+  if(!remote){ addEvent({sev:o==='open'?'info':o==='restricted'?'warn':'critical',title:`Bridge ${o==='open'?'reopened':o==='restricted'?'restricted':'closed'}`,msg:OPS[o][0],manual:true,ack:o==='open'}); bc&&bc.postMessage({kind:'ops',o}); post({type:'ops',state:o}); } }
+document.querySelectorAll('[data-op]').forEach(b=>b.onclick=()=>setOps(b.dataset.op)); setOps(ops,true);
+
+/* ---- team presence (simulated colleagues + other tabs of this browser) ---- */
+const opts={sound:store.get('sound',true),browser:store.get('browser',false)};
+const me={id:store.get('meId',Math.random().toString(36).slice(2,9)),name:store.get('meName','You'),role:'Bridge viewer'}; store.set('meId',me.id);
+const SIM=[{id:'u1',name:'M. Rossi',role:'Structural engineer',col:'#5aa9ff'},{id:'u2',name:'L. Bianchi',role:'Maintenance lead',col:'#3ecf8e'},{id:'u3',name:'Operations centre',role:'Traffic control',col:'#f5b13d'},{id:'u4',name:'A. Esposito',role:'Inspector · on site',col:'#c084fc'}];
+const people=new Map(); SIM.forEach(u=>people.set(u.id,{...u,state:Math.random()<0.75?'online':'away',doing:'viewing the overview',seen:Date.now(),sim:true}));
+function presence(){ const others=[...people.values()].filter(p=>Date.now()-p.seen<60000||p.sim), all=[{...me,col:'#ff7a59',state:'online',doing:sel?'viewing '+sel.id:'viewing the overview',isMe:true},...others];
+  $('teamN').textContent=all.filter(p=>p.state!=='away').length+' online';
+  const ini=n=>n.replace(/[^A-Za-zÀ-ÿ ]/g,'').split(' ').filter(Boolean).map(w=>w[0]).join('').slice(0,2).toUpperCase()||'?', dot=s=>s==='online'?'var(--ok)':s==='busy'?'var(--alarm)':'var(--warn)';
+  $('avatars').innerHTML=all.slice(0,6).map(p=>`<div class="av" style="background:${p.col}" title="${esc(p.name)} · ${esc(p.role)}">${ini(p.name)}<b style="background:${dot(p.state)}"></b></div>`).join('');
+  $('team').innerHTML=all.map(p=>`<div class="tm"><div class="av" style="background:${p.col}">${ini(p.name)}<b style="background:${dot(p.state)}"></b></div><div><b>${esc(p.name)}${p.isMe?' (you)':''}</b><small>${esc(p.role)} · ${esc(p.doing)}</small></div><small style="color:${dot(p.state)}">${p.state}</small></div>`).join('');
+  bc&&bc.postMessage({kind:'presence',p:{id:me.id,name:me.name,role:'Bridge viewer (other tab)',col:'#7dd3fc',state:document.hidden?'away':'online',doing:sel?'viewing '+sel.id:'viewing the overview'}}); }
+function simTeam(){ for(const p of people.values()){ if(!p.sim) continue; if(Math.random()<0.15){ const s=sensors[Math.floor(Math.random()*sensors.length)]; p.doing=Math.random()<0.6&&s?'viewing '+s.id:['reviewing the inspection report','in the 3D model','checking the traffic plan','on a call'][Math.floor(Math.random()*4)]; }
+    if(Math.random()<0.04) p.state=p.state==='online'?'away':'online';
+    const un=events.find(e=>!e.ack&&['alarm','critical','emergency'].includes(e.sev)&&Date.now()-e.time>20000);
+    if(un&&p.state==='online'&&Math.random()<0.08&&p.id!=='u3'){ ack(un.id,p.name); p.doing='responding to '+(un.sensor||'the alarm'); } } presence(); }
+if(bc) bc.onmessage=({data:m})=>{ if(m.kind==='event') addEvent(m.e,true); else if(m.kind==='ack') ack(m.id,m.by); else if(m.kind==='ops') setOps(m.o,true); else if(m.kind==='presence'){ people.set(m.p.id,{...m.p,seen:Date.now()}); }
+  else if(m.kind==='thr'){ thrType=m.thrType; thrOne=m.thrOne; renderSel(); } };
+
+/* ---- rendering ---- */
+function spark(cv,h,P,s){ const W=cv.width=cv.clientWidth*devicePixelRatio, H=cv.height=cv.clientHeight*devicePixelRatio, x=cv.getContext('2d'); x.clearRect(0,0,W,H); const d=h.slice(-90).filter(v=>v!=null); if(d.length<2) return;
+  let lo=Math.min(...d), hi=Math.max(...d); if(hi-lo<1e-9){ hi+=1; lo-=1; } x.strokeStyle=getComputedStyle(document.body).getPropertyValue(s.st==='alarm'?'--alarm':s.st==='warn'?'--warn':'--acc'); x.lineWidth=1.5*devicePixelRatio; x.beginPath();
+  d.forEach((v,i)=>{ const X=i/(d.length-1)*W, Y=H-(v-lo)/(hi-lo)*(H-4)-2; i?x.lineTo(X,Y):x.moveTo(X,Y); }); x.stroke(); }
+function visible(s){ const q=$('q').value.trim().toLowerCase(), ft=$('fType').value, fs=$('fStatus').value; return (!q||(s.id+' '+s.type+' '+s.host+' '+s.note).toLowerCase().includes(q))&&(!ft||s.type===ft)&&(!fs||s.st===fs); }
+function renderGrid(){ const order=s=>-SEVRANK[s.st]; const list=sensors.filter(visible).sort((a,b)=>order(a)-order(b)||a.id.localeCompare(b.id));
+  $('grid').innerHTML=list.map(s=>{ const P=PROF[s.type]; return `<div class="tile ${s.st}${sel===s?' sel':''}" data-id="${esc(s.id)}"><div class="id">${esc(s.id)}</div><div class="ty">${esc(s.type)} · ${esc(s.host)}</div><div class="v">${fmt(s.v,P)} <small>${esc(P.u)}</small></div><canvas></canvas></div>`; }).join('');
+  [...$('grid').children].forEach(el=>{ const s=sensors.find(q=>q.id===el.dataset.id); spark(el.querySelector('canvas'),s.hist,PROF[s.type],s); }); }
+$('grid').onclick=e=>{ const el=e.target.closest('.tile'); if(el) select(el.dataset.id,true); };
+['q','fType','fStatus'].forEach(id=>$(id).oninput=renderGrid);
+function select(id,notify){ const s=sensors.find(q=>q.id===id); if(!s) return; sel=s; renderGrid(); renderSel(); drawMap(); presence(); if(notify) post({type:'select',id:s.id,guid:s.guid}); const el=$('grid').querySelector(`[data-id="${CSS.escape(id)}"]`); el&&el.scrollIntoView({block:'nearest'}); }
+function renderSel(){ const s=sel; if(!s) return; const P=PROF[s.type], th=thrOf(s);
+  $('selType').textContent=s.type; $('selHead').className='tile '+s.st; $('selHead').innerHTML=`<div class="id">${esc(s.id)}</div><div class="ty">${esc(s.note||s.host)}</div><div class="v">${fmt(s.v,P)} <small>${esc(P.u)}</small> <span class="pill st-${s.st}" style="float:right"><i></i>${{ok:'Normal',warn:'Warning',alarm:'Alarm',off:'Offline'}[s.st]}</span></div>`;
+  ['tAL','tWL','tWH','tAH'].forEach((k,i)=>{ if(document.activeElement!==$(k)) $(k).value=th[i]??''; });
+  const kv=[['Host element',s.host],['IFC GlobalId',s.guid||'—'],['Eastings',isFinite(s.E)?s.E.toFixed(2):'—'],['Northings',isFinite(s.N)?s.N.toFixed(2):'—'],['Height',isFinite(s.H)?s.H.toFixed(2)+' m':'—'],['Last change',new Date(s.since).toLocaleTimeString()],['Thresholds',thrOne[s.id]?'this sensor':'sensor type']];
+  $('selMeta').innerHTML=kv.map(([k,v])=>`<span>${k}</span><b>${esc(v)}</b>`).join(''); drawChart(); }
+['tAL','tWL','tWH','tAH'].forEach(k=>$(k).onchange=()=>{ if(!sel) return; const v=['tAL','tWL','tWH','tAH'].map(id=>$(id).value===''?null:+$(id).value); thrOne[sel.id]=v; store.set('thrOne',thrOne); bc&&bc.postMessage({kind:'thr',thrType,thrOne}); sel.st=statusOf(sel,sel.v??0); renderSel(); renderGrid(); });
+function drawChart(){ const cv=$('chart'), s=sel; if(!s) return; const W=cv.width=cv.clientWidth*devicePixelRatio, H=cv.height=cv.clientHeight*devicePixelRatio, x=cv.getContext('2d'), P=PROF[s.type], th=thrOf(s), css=v=>getComputedStyle(document.body).getPropertyValue(v);
+  x.clearRect(0,0,W,H); const d=s.hist, vals=[...d.filter(v=>v!=null),...th.filter(v=>v!=null)]; if(!vals.length) return; let lo=Math.min(...vals), hi=Math.max(...vals); const pad=(hi-lo)*0.1||1; lo-=pad; hi+=pad;
+  const Y=v=>H-(v-lo)/(hi-lo)*(H-18*devicePixelRatio)-14*devicePixelRatio, dpr=devicePixelRatio; x.font=`${10*dpr}px ui-monospace,monospace`;
+  [[th[3],'--alarm'],[th[2],'--warn'],[th[1],'--warn'],[th[0],'--alarm']].forEach(([v,c])=>{ if(v==null) return; x.strokeStyle=css(c); x.setLineDash([5*dpr,4*dpr]); x.lineWidth=dpr; x.beginPath(); x.moveTo(0,Y(v)); x.lineTo(W,Y(v)); x.stroke(); x.setLineDash([]); x.fillStyle=css(c); x.fillText(String(v),4*dpr,Y(v)-3*dpr); });
+  x.strokeStyle=css('--acc'); x.lineWidth=1.6*dpr; x.beginPath(); let first=true; d.forEach((v,i)=>{ if(v==null){ first=true; return; } const X=i/(Math.max(1,d.length-1))*W; first?x.moveTo(X,Y(v)):x.lineTo(X,Y(v)); first=false; }); x.stroke();
+  x.fillStyle=css('--mute'); x.fillText(`last ${Math.round(d.length*TICK/60000)} min · ${P.u}`,W-150*dpr,H-3*dpr); }
+function drawMap(){ const cv=$('map'), pts=sensors.filter(s=>isFinite(s.E)&&isFinite(s.N)); const W=cv.width=cv.clientWidth*devicePixelRatio, H=cv.height=cv.clientHeight*devicePixelRatio, x=cv.getContext('2d'); x.clearRect(0,0,W,H);
+  if(!pts.length){ x.fillStyle=getComputedStyle(document.body).getPropertyValue('--mute'); x.font=`${11*devicePixelRatio}px sans-serif`; x.fillText('No map coordinates in this sensor list',10,20*devicePixelRatio); return; }
+  const E0=Math.min(...pts.map(p=>p.E)), E1=Math.max(...pts.map(p=>p.E)), N0=Math.min(...pts.map(p=>p.N)), N1=Math.max(...pts.map(p=>p.N)), sc=Math.min((W-30)/Math.max(1,E1-E0),(H-30)/Math.max(1,N1-N0)), cx=(W-(E1-E0)*sc)/2, cy=(H-(N1-N0)*sc)/2, css=v=>getComputedStyle(document.body).getPropertyValue(v);
+  for(const s of pts){ const X=cx+(s.E-E0)*sc, Y=H-cy-(s.N-N0)*sc; x.fillStyle=css({ok:'--ok',warn:'--warn',alarm:'--alarm',off:'--off'}[s.st]); x.beginPath(); x.arc(X,Y,(s===sel?6:3.5)*devicePixelRatio,0,7); x.fill(); if(s===sel){ x.strokeStyle=css('--fg'); x.lineWidth=devicePixelRatio; x.stroke(); } }
+  x.fillStyle=css('--mute'); x.font=`${10*devicePixelRatio}px sans-serif`; x.fillText('N ↑',W-26*devicePixelRatio,14*devicePixelRatio);
+  cv.onclick=ev=>{ const r=cv.getBoundingClientRect(), mx=(ev.clientX-r.left)*devicePixelRatio, my=(ev.clientY-r.top)*devicePixelRatio; let b=null,bd=1e9; for(const s of pts){ const d=Math.hypot(cx+(s.E-E0)*sc-mx,H-cy-(s.N-N0)*sc-my); if(d<bd){ bd=d; b=s; } } if(b&&bd<20*devicePixelRatio) select(b.id,true); }; }
+function kpis(){ const on=sensors.filter(s=>s.st!=='off').length, w=sensors.filter(s=>s.st==='warn').length, a=sensors.filter(s=>s.st==='alarm').length;
+  $('kOnline').textContent=`${on} / ${sensors.length}`; $('kWarn').textContent=w; $('kAlarm').textContent=a;
+  const winds=sensors.filter(s=>s.type==='Anemometer'&&s.v!=null).map(s=>s.v), accs=sensors.filter(s=>s.type==='Accelerometer'&&s.v!=null).map(s=>s.v);
+  $('kWind').textContent=winds.length?Math.max(...winds).toFixed(1)+' m/s':'—'; $('kAcc').textContent=accs.length?Math.max(...accs).toFixed(3)+' m/s²':'—';
+  $('kTraffic').textContent=Math.round(trafficCount/Math.max(1,t)*3600*(1000/TICK)/ (sensors.filter(s=>s.type==='Weigh-in-motion').length||1)*0.15);
+  const hi=Math.max(0,Math.round(100-a*12-w*4-(sensors.length-on)*3)); $('kHealth').textContent=hi; $('kHealth').className=hi>=80?'st-ok':hi>=55?'st-warn':'st-alarm';
+  const st=a?['alarm',`${a} alarm${a>1?'s':''}`]:w?['warn',`${w} warning${w>1?'s':''}`]:['ok','All normal']; $('bridgeStatus').className='pill st-'+st[0]; $('bridgeStatus').innerHTML=`<i></i>${st[1]}`; }
+
+/* ---- embedding: messages to / from the host app (e.g. a GeoTwin bridge viewer) ---- */
+function post(m){ if(window.parent!==window) try{ window.parent.postMessage({source:'pm-iot',project:PROJECT,...m},'*'); }catch(_){} }
+window.addEventListener('message',ev=>{ const m=ev.data||{}; if(m.type==='focusSensor') select(m.id,false); else if(m.type==='setSensors'&&Array.isArray(m.sensors)) setSensors(m.sensors); else if(m.type==='setProject'){ $('proj').textContent=m.name; } else if(m.type==='setScenario'&&SCEN[m.name]){ scen=m.name; $('scenario').value=m.name; } });
+
+/* ---- settings ---- */
+$('setBtn').onclick=()=>{ const types=[...new Set(sensors.map(s=>s.type))];
+  $('thrTbl').innerHTML='<tr><th>Type</th><th>Unit</th><th>Alarm ↓</th><th>Warn ↓</th><th>Warn ↑</th><th>Alarm ↑</th></tr>'+types.map(tp=>{ const th=thrType[tp]||PROF[tp].thr; return `<tr data-t="${esc(tp)}"><td>${esc(tp)}</td><td>${esc(PROF[tp].u)}</td>${th.map((v,i)=>`<td><input type="number" step="any" data-i="${i}" value="${v??''}"></td>`).join('')}</tr>`; }).join('');
+  $('meName').value=me.name; $('optSound').checked=opts.sound; $('optBrowser').checked=opts.browser; $('optLight').checked=document.documentElement.dataset.theme==='light'; $('setDlg').showModal(); };
+$('thrTbl').onchange=e=>{ const tr=e.target.closest('tr'); if(!tr) return; const tp=tr.dataset.t; thrType[tp]=[...tr.querySelectorAll('input')].map(i=>i.value===''?null:+i.value); store.set('thrType',thrType); bc&&bc.postMessage({kind:'thr',thrType,thrOne}); renderSel(); };
+$('thrReset').onclick=()=>{ thrType={}; thrOne={}; store.set('thrType',thrType); store.set('thrOne',thrOne); bc&&bc.postMessage({kind:'thr',thrType,thrOne}); renderSel(); };
+$('meName').onchange=e=>{ me.name=e.target.value.trim()||'You'; store.set('meName',me.name); presence(); };
+$('optSound').onchange=e=>{ opts.sound=e.target.checked; store.set('sound',opts.sound); if(opts.sound) beep(); };
+$('optBrowser').onchange=e=>{ opts.browser=e.target.checked; store.set('browser',opts.browser); if(opts.browser&&'Notification' in window) Notification.requestPermission(); };
+$('optLight').onchange=e=>{ document.documentElement.dataset.theme=e.target.checked?'light':'dark'; store.set('light',e.target.checked); renderGrid(); renderSel(); drawMap(); };
+$('scenario').value=scen; $('scenario').onchange=e=>{ scen=e.target.value; addEvent({sev:'info',title:'Scenario changed (demo)',msg:$('scenario').selectedOptions[0].textContent,ack:true}); };
+
+/* ---- data import / export ---- */
+function parseCSV(txt){ const rows=[]; let row=[], cur='', q=false; for(let i=0;i<txt.length;i++){ const ch=txt[i]; if(q){ if(ch==='"'){ if(txt[i+1]==='"'){ cur+='"'; i++; } else q=false; } else cur+=ch; } else if(ch==='"') q=true; else if(ch===','){ row.push(cur); cur=''; } else if(ch==='\n'||ch==='\r'){ if(ch==='\r'&&txt[i+1]==='\n') i++; row.push(cur); rows.push(row); row=[]; cur=''; } else cur+=ch; }
+  if(cur||row.length){ row.push(cur); rows.push(row); } const head=rows.shift()||[]; return rows.filter(r=>r.length>1).map(r=>Object.fromEntries(head.map((h,i)=>[h,r[i]]))); }
+async function loadFrom(text,name){ const list=name.endsWith('.json')||text.trim().startsWith('[')?JSON.parse(text):parseCSV(text); if(list.length){ setSensors(list); addEvent({sev:'info',title:'Sensor list loaded',msg:`${list.length} sensors from ${name}`,ack:true}); } }
+$('fileIn').onchange=async e=>{ const f=e.target.files[0]; if(f) loadFrom(await f.text(),f.name); };
+$('csvBtn').onclick=()=>{ const lines=['Tag,GlobalId,Type,Host,Value,Unit,Status,Eastings,Northings,Height,Time']; const now=new Date().toISOString();
+  for(const s of sensors){ const P=PROF[s.type]; lines.push([s.id,s.guid,s.type,s.host,s.v==null?'':fmt(s.v,P),P.u,s.st,isFinite(s.E)?s.E.toFixed(3):'',isFinite(s.N)?s.N.toFixed(3):'',isFinite(s.H)?s.H.toFixed(3):'',now].map(v=>`"${String(v).replace(/"/g,'""')}"`).join(',')); }
+  const a=document.createElement('a'); a.href=URL.createObjectURL(new Blob([lines.join('\n')+'\n'],{type:'text/csv'})); a.download='bridge-readings.csv'; document.body.appendChild(a); a.click(); a.remove(); };
+
+/* ---- start ---- */
+const TICK=1000;
+(async()=>{ let list=DEFAULT_SENSORS; const src=qs.get('sensors'); if(src){ try{ const r=await fetch(src); const txt=await r.text(); list=src.endsWith('.json')||txt.trim().startsWith('[')?JSON.parse(txt):parseCSV(txt); }catch(e){ console.warn('sensor list could not be loaded',e); } }
+  setSensors(list); renderEvents(); presence(); kpis();
+  setInterval(()=>{ tick(false); kpis(); renderGrid(); renderSel(); $('clock').textContent=new Date().toLocaleTimeString(); },TICK);
+  setInterval(()=>{ simTeam(); drawMap(); },3000);
+  setInterval(()=>post({type:'statusAll',sensors:sensors.map(s=>({id:s.id,guid:s.guid,status:s.st,value:s.v,unit:PROF[s.type].u}))}),5000);
+  post({type:'ready',sensors:sensors.length}); })();
+window.addEventListener('resize',()=>{ renderGrid(); drawChart(); drawMap(); });
+</script>
+</body>
+</html>
